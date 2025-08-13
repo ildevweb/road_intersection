@@ -122,6 +122,7 @@ fn main() -> Result<(), String> {
         canvas.clear();
 
         draw_intersection(&mut canvas)?;
+        update_and_draw_vehicles(&mut canvas, &mut vehicles)?;
         canvas.present();
 
         std::thread::sleep(Duration::from_millis(16)); // ~60 FPS
@@ -130,6 +131,45 @@ fn main() -> Result<(), String> {
     Ok(())
 }
 
+
+fn update_and_draw_vehicles(
+    canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
+    vehicles: &mut Vec<Vehicle>,
+) -> Result<(), String> {
+    use sdl2::rect::Rect;
+
+    // Dimensions
+    let (vehicle_w, vehicle_h) = (20, 40);
+
+    // Keep only vehicles that are on screen
+    vehicles.retain(|v| {
+        v.x >= -50.0 && v.x <= WINDOW_WIDTH as f32 + 50.0 &&
+        v.y >= -50.0 && v.y <= WINDOW_HEIGHT as f32 + 50.0
+    });
+
+    for vehicle in vehicles.iter_mut() {
+        // Move vehicle
+        match vehicle.direction {
+            Direction::North => vehicle.y -= vehicle.speed,
+            Direction::South => vehicle.y += vehicle.speed,
+            Direction::East  => vehicle.x += vehicle.speed,
+            Direction::West  => vehicle.x -= vehicle.speed,
+        }
+
+        // Adjust shape for direction
+        let (w, h) = match vehicle.direction {
+            Direction::North | Direction::South => (vehicle_w, vehicle_h),
+            Direction::East | Direction::West => (vehicle_h, vehicle_w),
+        };
+
+        // Draw
+        canvas.set_draw_color(vehicle.color);
+        let rect = Rect::new(vehicle.x as i32, vehicle.y as i32, w, h);
+        canvas.fill_rect(rect)?;
+    }
+
+    Ok(())
+}
 
 
 fn draw_intersection(canvas: &mut sdl2::render::Canvas<sdl2::video::Window>) -> Result<(), String> {
